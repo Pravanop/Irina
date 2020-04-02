@@ -1,0 +1,2 @@
+conda install -c conda-forge speechrecognition
+conda install -c anaconda pyaudio
