@@ -7,9 +7,20 @@ import bs4
 from bs4 import BeautifulSoup as soup
 from urllib.request import urlopen
 from newspaper import Article 
-
+import urllib.request
+import urllib.parse
+import re
+import webbrowser
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.keys import Keys
+import os
+import pyautogui
+chrome_options= Options()
+chrome_options.add_argument("--headless")
+chrome_options.add_argument("--window-size=1920x1080")
+chrome_driver = os.getcwd() +"\\chromedriver.exe"
 embedder=sister.MeanEmbedding(lang='en')
-
 class Intent:
     threshold=0.7 #say
     def intent_builder(self,training_phrases):
@@ -34,6 +45,11 @@ class Intent:
             return True,cosine_max
         else:
             return False,0
+        
+    def training_phrase_adder_10(self,training_phrases):
+        for phrase in range(10):
+             training_phrases=Intent.intent_builder(self,training_phrases)
+        return training_phrases
 
 #given a list of intent objects(with function call as attribute). Training phrases already loaded.
 def intent_matcher(intent_list,testing_phrase):
@@ -59,13 +75,12 @@ def intent_matcher(intent_list,testing_phrase):
         count=count+1
     return intent_max,vector_max
 
+
 class Stocks(Intent):
-    def training_phrase_adder_20(self,training_phrases):
-        for phrase in range(5):
-             training_phrases=Intent.intent_builder(self,training_phrases)
-        return training_phrases
-    def stock_price(self,company):
-        driver = webdriver.Chrome('C:/Users/Sandesh Rangreji/Documents/React_sample/IRINA_bot/chromedriver.exe')
+  
+    def func_call(self,company):
+        
+        driver = webdriver.Chrome(options=chrome_options, executable_path=chrome_driver)
         driver.get("https://www.google.com") 
         import time 
         #time.sleep(1)
@@ -81,10 +96,7 @@ class Stocks(Intent):
         return reply
 
 class News(Intent):
-    def training_phrase_adder_20(self,training_phrases):
-        for phrase in range(5):
-             training_phrases=Intent.intent_builder(self,training_phrases)
-        return training_phrases
+ 
     def generate_newsList(self):
         news_url="https://news.google.com/news/rss"
         Client=urlopen(news_url)
@@ -93,7 +105,7 @@ class News(Intent):
         soup_page=soup(xml_page,"xml")
         news_list=soup_page.findAll("item")
         return news_list
-    def print_topNews(self):
+    def func_call(self):
         news_list=self.generate_newsList()
         # Print news title, url and publish date
         news_items=[]
@@ -119,39 +131,64 @@ class News(Intent):
 
             news_items.append(news_item)
         return news_items
+class Youtube_video(Intent):
+    
+    def func_call(query):
+        query_string = urllib.parse.urlencode({"search_query" : query})
+        html_content = urllib.request.urlopen("http://www.youtube.com/results?" + query_string)
+        search_results = re.findall(r'href=\"\/watch\?v=(.{11})', html_content.read().decode())
+        link ="http://www.youtube.com/watch?v=" + search_results[0]
+        webbrowser.open(link)
+        return link
+    
+class Youtube_music_downloader(Intent):
+    
+    def func_call(condition):
+        driver = webdriver.Chrome(options=chrome_options, executable_path=chrome_driver)
+        driver.get("https://ytmp3.cc/en13/") #https://ytmp3.cc/en13/
+        search_bar = driver.find_element_by_id("input")
+        search_bar.clear()
+        search_bar.send_keys(link)
+        driver.find_element_by_id("submit").click()
+        import time 
+        time.sleep(4)
+        driver.find_element_by_link_text('Download').click()
+        time.sleep(35)
+        return "It is done,Sir"
+    
+class Automated_jupyter_notebook(Intent):
+    
+    def func_call(query):
+        pyautogui.moveTo(300,1504,duration=0.4)
+        pyautogui.click(x=300, y=1475, clicks=2,interval=0.5, button='left')
+        pyautogui.PAUSE=0.5
+        pyautogui.typewrite('Anaconda Prompt\n', interval=0.05)
+        pyautogui.PAUSE=0.5
+        pyautogui.typewrite('activate opencv\n',interval=0.05)
+        pyautogui.PAUSE=0.5
+        pyautogui.typewrite('jupyter notebook\n',interval=0.05)
+        return ("It is open, Sir")
+
 
 #initialize functionality classes
 def init_intents():
     stocks=Stocks()
     news=News()
-    #Code to Store training phrases(Stocks)
-    #training_phrases=stocks.training_phrase_adder_20(training_phrases)
-    #stocks.training_phrases=training_phrases
-    #np.save('stocks_training_phrases', stocks.training_phrases)
-
-    stocks.training_phrases=np.load('stocks_training_phrases.npy')
-    news.training_phrases=np.load('news_training_phrases.npy')
-    
-    intent_list=[stocks,news]
-
-    return intent_list,stocks,news
+    youtube_video=Youtube_video()
+    youtube_music_downloader=Youtube_music_downloader()
+    automated_jupyter_notebook=Automated_jupyter_notebook()
+    stocks.training_phrases=np.load('Stocks_phrases.npy')
+    news.training_phrases=np.load('News_phrases.npy')
+    intent_list=[stocks,news,youtube_music_downloader,youtube_video,automated_jupyter_notebook]
+    return intent_list
 
 def set_reply(query): 
-    intent_list,stocks,news=init_intents()
+    intent_list=init_intents()
     #query="What is the share price of google"
     testing_phrase=embedder(query)
     testing_phrase=testing_phrase.reshape(300,1)
     intent_max,vector_max=intent_matcher(intent_list,testing_phrase)
-    if(intent_max==stocks):
-        return(stocks.stock_price(query))
-    elif(intent_max==news):
-        news_items=news.print_topNews()
-        reply=''
-        for item in news_items:
-            reply=reply+item+'\n'
-        return(reply)
-    else:
-        return("I'm sorry,I can't help you with that.")
-
+    return(intent_max.func_call(query))
+    
 
 #print(set_reply("What's making the headlines today?"))

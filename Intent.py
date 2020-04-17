@@ -7,6 +7,7 @@ class Intent:
     
     def intent_searcher(self,testing_phrases,training_phrases):
         iteration_count=0
+        testing_phrase=embedder(testing_phrases)
         for training_phrase in training_phrases:
             training_phrase=training_phrase.reshape(300,1)
             cosine_sim=1- cosine(training_phrase,testing_phrase)

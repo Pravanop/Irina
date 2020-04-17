@@ -8,7 +8,6 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.keys import Keys
 import os
-from Intent import *
 # In[1]:
 chrome_options= Options()
 chrome_options.add_argument("--headless")
@@ -19,22 +18,20 @@ chrome_driver = os.getcwd() +"\\chromedriver.exe"
 
 
 # In[2]:
-
-class Stocks_func(Intent):
     
-    def stock_price(self,query):
-        driver = webdriver.Chrome(options=chrome_options, executable_path=chrome_driver)
-        driver.get("https://www.google.com") 
-        import time 
-        time.sleep(4)
-        search_bar = driver.find_element_by_name("q")
-        search_bar.clear()
-        search_bar.send_keys(query)
-        search_bar.submit()
-        time.sleep(3)
-        price= driver.find_element_by_css_selector("span[jsname='vWLAgc']")
-        percent=driver.find_element_by_css_selector("span[jsname='rfaVEf']")
-        return 'It is at '+ price.text + 'and ' + percent.text 
+def stock_price(query):
+    driver = webdriver.Chrome(options=chrome_options, executable_path=chrome_driver)
+    driver.get("https://www.google.com") 
+    import time 
+    time.sleep(4)
+    search_bar = driver.find_element_by_name("q")
+    search_bar.clear()
+    search_bar.send_keys(query)
+    search_bar.submit()
+    time.sleep(3)
+    price= driver.find_element_by_css_selector("span[jsname='vWLAgc']")
+    percent=driver.find_element_by_css_selector("span[jsname='rfaVEf']")
+    return 'It is at '+ price.text + 'and ' + percent.text 
 
 # In[ ]:
 
